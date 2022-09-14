@@ -2,19 +2,25 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 
 import android.Manifest
+import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.*
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -39,6 +45,7 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
     private val REQUEST_LOCATION_PERMISSION = 1
     private val REQUEST_TURN_DEVICE_LOCATION_ON = 29
     private lateinit var marker:Marker
+
 
 
     override fun onCreateView(
@@ -122,14 +129,18 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
 
 
     }
+
     private fun isPermissionGranted() : Boolean {
-        return ContextCompat.checkSelfPermission(
-                requireActivity(),
-                Manifest.permission.ACCESS_FINE_LOCATION) === PackageManager.PERMISSION_GRANTED
+        return context?.let {
+            ContextCompat.checkSelfPermission(
+                    it,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        } == PackageManager.PERMISSION_GRANTED
     }
     private fun enableMyLocation() {
         if (isPermissionGranted()) {
-            if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
             map.setMyLocationEnabled(true)
@@ -140,6 +151,7 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
                     REQUEST_LOCATION_PERMISSION
             )
         }
+
     }
     override fun onRequestPermissionsResult(
             requestCode: Int,
@@ -148,10 +160,24 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // Check if location permissions are granted and if so enable the
         // location data layer.
-        if (requestCode == REQUEST_LOCATION_PERMISSION) {
-            if (grantResults.size > 0 && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                enableMyLocation()
+        if (requestCode == REQUEST_LOCATION_PERMISSION && grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            enableMyLocation()
             }
+        else {
+            Toast.makeText(requireContext(),R.string.permission_denied_explanation, Toast.LENGTH_SHORT).show()
+            Snackbar.make(
+                    binding.root,
+                    R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
+            ).setAction(android.R.string.ok) {
+                requestPermissions(
+                        arrayOf<String>(android.Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION_PERMISSION
+                )
+//                startActivity(Intent().apply {
+//                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+//                    data = Uri.fromParts("package",requireActivity().packageName, null)
+//                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//                })
+            }.show()
         }
     }
 
@@ -188,8 +214,8 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
             marker = map.addMarker(
                     MarkerOptions()
                             .position(latLng)
-                            .title(getString(R.string.dropped_pin))
-                            .snippet(snippet)
+                            .title(snippet)
+                            //.snippet(snippet)
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
 
 
@@ -236,7 +262,7 @@ class SelectLocationFragment : BaseFragment() ,OnMapReadyCallback{
                 }
             } else {
                 Snackbar.make(
-                        this.requireView(),
+                        binding.root,
                         R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                 ).setAction(android.R.string.ok) {
                     getUserLocationPermissionFromSetting()

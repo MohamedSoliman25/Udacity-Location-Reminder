@@ -54,20 +54,20 @@ class ReminderListFragment : BaseFragment() {
             navigateToAddReminder()
         }
         //check If the user was unauthenticated, send him to AuthenticationActivity
-        binding.viewModel?.authenticationState?.observe(viewLifecycleOwner, Observer { authenticationState ->
-            when (authenticationState) {
-                RemindersListViewModel.AuthenticationState.AUTHENTICATED -> Log.i(TAG, "Authenticated")
-                // If the user is not logged in, they should not be able to set any preferences,
-                // so navigate them to AuthenticationActivity
-                RemindersListViewModel.AuthenticationState.UNAUTHENTICATED ->
-                    startActivity(Intent(context, AuthenticationActivity::class.java))
-
-
-                else -> Log.e(
-                    TAG, "New $authenticationState state that doesn't require any UI change"
-                )
-            }
-        })
+//        binding.viewModel?.authenticationState?.observe(viewLifecycleOwner, Observer { authenticationState ->
+//            when (authenticationState) {
+//                RemindersListViewModel.AuthenticationState.AUTHENTICATED -> Log.i(TAG, "Authenticated")
+//                // If the user is not logged in, they should not be able to set any preferences,
+//                // so navigate them to AuthenticationActivity
+//                RemindersListViewModel.AuthenticationState.UNAUTHENTICATED ->
+//                    startActivity(Intent(context, AuthenticationActivity::class.java))
+//
+//
+//                else -> Log.e(
+//                    TAG, "New $authenticationState state that doesn't require any UI change"
+//                )
+//            }
+//        })
     }
 
 

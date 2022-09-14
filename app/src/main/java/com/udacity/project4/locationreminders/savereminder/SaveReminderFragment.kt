@@ -14,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -49,15 +50,16 @@ class SaveReminderFragment : BaseFragment() {
                 "SaveReminderFragment.project4.action.ACTION_GEOFENCE_EVENT"
     }
     private val geofencePendingIntent: PendingIntent by lazy {
-        val intent = Intent(requireContext(), GeofenceBroadcastReceiver::class.java)
+        val intent = Intent(myContext, GeofenceBroadcastReceiver::class.java)
         intent.action = ACTION_GEOFENCE_EVENT
-        PendingIntent.getBroadcast(requireContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        PendingIntent.getBroadcast(myContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
         myContext = context
     }
+
 
 
 
@@ -71,10 +73,15 @@ class SaveReminderFragment : BaseFragment() {
         setDisplayHomeAsUpEnabled(true)
 
         binding.viewModel = _viewModel
-        geofencingClient = LocationServices.getGeofencingClient(requireContext())
+        geofencingClient = LocationServices.getGeofencingClient(myContext)
 
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        myContext = requireContext()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -89,7 +96,7 @@ class SaveReminderFragment : BaseFragment() {
         binding.saveReminder.setOnClickListener {
             val title = _viewModel.reminderTitle.value
             val description = _viewModel.reminderDescription.value
-            val location = _viewModel.reminderSelectedLocationStr.value
+            val location = _viewModel.reminderSelectedLocationStr.value?:""
             val latitude = _viewModel.latitude.value
             val longitude = _viewModel.longitude.value
 
@@ -116,13 +123,13 @@ class SaveReminderFragment : BaseFragment() {
     private fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
         val foregroundLocationApproved = (
                 PackageManager.PERMISSION_GRANTED ==
-                        ContextCompat.checkSelfPermission(requireActivity(),
+                        ActivityCompat.checkSelfPermission(myContext,
                                 Manifest.permission.ACCESS_FINE_LOCATION))
         val backgroundPermissionApproved =
                 if (runningQOrLater) {
                     PackageManager.PERMISSION_GRANTED ==
-                            ContextCompat.checkSelfPermission(
-                                    requireActivity(), Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                            ActivityCompat.checkSelfPermission(
+                                    myContext, Manifest.permission.ACCESS_BACKGROUND_LOCATION
                             )
                 } else {
                     true
@@ -139,7 +146,7 @@ class SaveReminderFragment : BaseFragment() {
         }
         val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
 
-        val settingsClient = LocationServices.getSettingsClient(requireContext())
+        val settingsClient = LocationServices.getSettingsClient(myContext)
         val locationSettingsResponseTask =
                 settingsClient.checkLocationSettings(builder.build())
 
@@ -150,14 +157,15 @@ class SaveReminderFragment : BaseFragment() {
                 try {
                     // Show the dialog by calling startResolutionForResult(),
                     // and check the result in onActivityResult().
-                    exception.startResolutionForResult(requireActivity(),
-                            REQUEST_TURN_DEVICE_LOCATION_ON)
+                 startIntentSenderForResult(exception.resolution.intentSender,
+                         REQUEST_TURN_DEVICE_LOCATION_ON,
+                         null, 0, 0, 0, null)
                 } catch (sendEx: IntentSender.SendIntentException) {
                     Log.d(TAG, "Error geting location settings resolution: " + sendEx.message)
                 }
             } else {
                 Snackbar.make(
-                        requireView(),
+                        this.requireView(),
                         R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                 ).setAction(android.R.string.ok) {
                     checkDeviceLocationSettingsAndStartGeofence()
@@ -222,6 +230,7 @@ class SaveReminderFragment : BaseFragment() {
                     }
                 }
             }
+            _viewModel.onClear()
         }
     }
 
@@ -274,7 +283,7 @@ class SaveReminderFragment : BaseFragment() {
         // this provides the result[LOCATION_PERMISSION_INDEX]
         var permissionsArray = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
-         permissionRequestCode = when {
+        permissionRequestCode = when {
             runningQOrLater -> {
                 // this provides the result[BACKGROUND_LOCATION_PERMISSION_INDEX]
                 permissionsArray += Manifest.permission.ACCESS_BACKGROUND_LOCATION
